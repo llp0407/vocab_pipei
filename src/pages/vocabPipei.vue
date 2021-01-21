@@ -12,6 +12,8 @@
       </div>
       <div style="width: 200px">
         <van-button color="#7232dd" @click="next" size="large">next</van-button>
+        <div style="height:20px;"></div>
+        <van-button color="#719966" @click="skip" size="large">跳过</van-button>
       </div>
       <div style="margin-left:30px;font-size:32px;">
         {{ok_count}}/{{sum_count}}
@@ -208,6 +210,25 @@ export default {
     this.getList();
   },
   methods: {
+    skip(){
+      let obj = {
+        context_list: this.problem.context_list,
+        samples: this.problem.samples_list,
+        img: this.problem.img || '',
+        radioIdx: [],
+        skip:true,
+      };
+      post("/api/word_samples_update.test", obj).then((res) => {
+        console.log("word_samples_update", res);
+        if(this.curIndex == this.list.length-1){
+          this.getList();
+        }
+        else{
+          this.curIndex++;
+          this.setProblem();
+        }
+      });
+    },
     nextImg(type){
       this.preImgIdx += type
     },
@@ -270,6 +291,7 @@ export default {
         samples: this.problem.samples_list[radioIdx[0]].data[radioIdx[1]],
         img: this.problem.img,
         radioIdx: this.radioIdx,
+        skip:false,
       };
       obj.samples['name'] = this.problem.samples_list[radioIdx[0]].name
       obj.samples['word'] = this.problem.samples_list[radioIdx[0]].word

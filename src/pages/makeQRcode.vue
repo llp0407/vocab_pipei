@@ -1,12 +1,7 @@
 <template>
   <div >
     <div class="content">
-      <canvas
-        id="c"
-        style="border: 1px solid red"
-        width="1190"
-        height="1648"
-      ></canvas>
+      
       <div class="control-box">
         <div class="range-box" @click="bindRange">
           <div :class="['range-item',idx==rangeIdx1?'active-range':'']" v-for="(item,idx) in rangeList" :key="idx" :data-idx="idx" data-clicktype='0'>
@@ -85,9 +80,85 @@
               border
             />
           </van-cell-group>
+          
+          <van-cell-group>
+            <van-field
+              label="提示文字大小"
+              placeholder="提示文字大小"
+              v-model="tipsTextFontSize"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+          <van-cell-group>
+            <van-field
+              label="编码文字大小"
+              placeholder="编码文字大小"
+              v-model="bmTextFontSize"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+
+          <van-cell-group>
+            <van-field
+              label="输出图宽"
+              placeholder="输出图宽"
+              v-model="canvasWidth"
+              @input="onCanvasWidth"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+          <van-cell-group>
+            <van-field
+              label="输出图高"
+              placeholder="输出图高"
+              v-model="canvasHeight"
+              @input="onCanvasHeight"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+          <van-cell-group>
+            <van-field
+              label="放大倍数"
+              placeholder="放大倍数"
+              v-model="multiple"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+          <van-cell-group>
+            <van-field
+              label="从第几行开始打印(1最小)"
+              placeholder="从第几行开始打印"
+              v-model="startLine"
+              autosize
+              type="text"
+              clickable
+              border
+            />
+          </van-cell-group>
+
           <van-cell center title="确认入库">
             <template #right-icon>
               <van-switch v-model="isRuku" size="24" />
+            </template>
+          </van-cell>
+          <van-cell center title="是否打印框框">
+            <template #right-icon>
+              <van-switch v-model="isBorder" size="24" />
             </template>
           </van-cell>
           <div style="margin-top:20px;">
@@ -96,6 +167,17 @@
         </div>
 
       </div>
+
+      <canvas
+        id="c"
+        style="border: 1px solid red;"
+        :width="canvasWidth*multiple"
+        :height="canvasHeight*multiple"
+      ></canvas>
+      <!-- <canvas
+        id="c"
+        style="border: 1px solid red;"
+      ></canvas> -->
       <!-- <button @click="del()">del</button>
       <button @click="exportCanvasAsPNG()">save</button> -->
     </div>
@@ -134,20 +216,40 @@ export default {
       rangeIdx2:0,
       resultList:[],
       isRuku:false,
-      itemWidth:297.5,
-      itemHeight:120.13,
-      wholeTop:0,
-      wholeLeft:0,
+      itemWidth:257.5,
+      itemHeight:104.43,
+      wholeTop:30,
+      wholeLeft:15,
+      multiple:3,    //放大倍数
+      tipsTextFontSize:16,
+      bmTextFontSize:14,
+      // canvasWidth:210*5,
+      // canvasHeight:297*5,
+      canvasWidth:1050,
+      canvasHeight:1485,
+      startLine:1,
+      isBorder:false,
     };
   },
   created() {
     this.book_qrcode_region_query();
+    // this.codeCanvas = {clear:()=>{}}
   },
   mounted() {
     this.initCanvas();
     console.log(this.codeCanvas)
   },
   methods: {
+    onCanvasWidth(value){
+      // console.log(value)
+      // this.codeCanvas.clear();
+      document.getElementById('c').width = parseInt(value) * this.multiple
+      console.log(this.codeCanvas)
+    },
+    onCanvasHeight(value){
+      // this.codeCanvas.clear();
+      document.getElementById('c').height = parseInt(value) * this.multiple
+    },
     book_qrcode_create(){
       let obj = {
         create:this.isRuku,
@@ -187,6 +289,10 @@ export default {
     },
     initCanvas() {
       this.codeCanvas = new fabric.Canvas("c");
+      // this.codeCanvas.contextContainer.imageSmoothingEnabled = false
+      // this.codeCanvas.contextContainer.mozImageSmoothingEnabled = false
+      // this.codeCanvas.contextContainer.webkitImageSmoothingEnabled = false
+      // this.codeCanvas.contextContainer.msImageSmoothingEnabled = false
     },
     // 删除
     del() {
@@ -207,11 +313,12 @@ export default {
       return new Promise((resolve,reject) => {
         const imgObj = new Image();
         imgObj.onload = () => {
+          let multiple = this.multiple
           var oImage = new fabric.Image(imgObj);
           // let boxWidth = 297.5;
-          let boxWidth = parseFloat(this.itemWidth);
+          let boxWidth = parseFloat(this.itemWidth) * multiple;
           // let boxHeight = 120.13
-          let boxHeight = parseFloat(this.itemHeight);
+          let boxHeight = parseFloat(this.itemHeight) * multiple;
           console.log(boxWidth,boxHeight)
           let imgWidth = boxHeight
           let midpointX = boxWidth / 2;
@@ -220,40 +327,57 @@ export default {
           oImage.scaleToWidth(imgWidth);
           let imgMidpointX = midpointX - (boxWidth/4)    //图的中点在宽度的1/4处
           let imgMidpointY = midpointY 
-          let wholeTop = parseFloat(this.wholeTop)
+          let wholeTop = parseFloat(this.wholeTop) + (this.startLine-1) * (boxHeight)
           let wholeLeft = parseFloat(this.wholeLeft)
           let left = (j % numberOfRows) * (boxWidth) + imgMidpointX + wholeLeft
           let top = parseInt(j / numberOfRows) * (boxHeight) + imgMidpointY + wholeTop
-
+          if(this.isBorder){
+            let rectLeft = (j % numberOfRows) * (boxWidth) + midpointX + wholeLeft
+            let rectTop = parseInt(j / numberOfRows) * (boxHeight) + midpointY + wholeTop
+            let rect = new fabric.Rect({
+              left: rectLeft,
+              top:  rectTop,
+              // fill: 'red',
+              // strokeDashArray: [10, 10],
+              stroke: 'red',
+              strokeWidth: 1,
+              fill: 'white',
+              width: boxWidth,
+              height: boxHeight,
+            });
+            this.codeCanvas.add(rect);
+          }
           // console.log(j, left, top)
           oImage.set({
             left,
             top,
           });
           this.codeCanvas.add(oImage);
+          
 
-          let tipsTextFontSize = 14
+          let tipsTextFontSize = this.tipsTextFontSize * multiple
           let tipsTextLeft = left + imgWidth
-          let textRelativeMidpointY = top - 20     //相对box中点
+          let textGap = 20
+          // let textRelativeMidpointY = top - (20*multiple)   //相对box中点
           let text1 = new fabric.Text(`扫码获取`, {
             left: tipsTextLeft,
-            top: textRelativeMidpointY,
+            top: top - (tipsTextFontSize + textGap),
             fontSize: tipsTextFontSize,
           });
           let text2 = new fabric.Text(`*绘本阅读指导`, {
             left: tipsTextLeft,
-            top: textRelativeMidpointY + 20,
+            top: top,
             fontSize: tipsTextFontSize,
           });
           let text3 = new fabric.Text(`*拼读单词练习`, {
             left: tipsTextLeft,
-            top: textRelativeMidpointY + 40,
+            top: top + (tipsTextFontSize + textGap),
             fontSize: tipsTextFontSize,
           });
           let text4 = new fabric.Text(this.QRcodeList[i][j].code, {
             left: left + (boxWidth/4),
-            top: top + (boxHeight/2) -10,
-            fontSize: tipsTextFontSize,
+            top: top + (boxHeight/2) -30,
+            fontSize: this.bmTextFontSize * multiple,
           });
           this.codeCanvas.add(text1);
           this.codeCanvas.add(text2);
@@ -331,8 +455,7 @@ export default {
   align-items: flex-start;
 }
 .control-box{
-  margin-left: 20px;
-
+  margin-right:20px;
 }
 .range-box{
   display: flex;
