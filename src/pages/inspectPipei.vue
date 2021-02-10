@@ -10,11 +10,6 @@
           {{ item }}
         </div>
       </div>
-      <div style="width: 200px">
-        <van-button color="#7232dd" @click="next" size="large">next</van-button>
-        <div style="height:20px;"></div>
-        <van-button color="#719966" @click="skip" size="large">跳过</van-button>
-      </div>
       <div style="margin-left:30px;font-size:32px;">
         {{ok_count}}/{{sum_count}}
       </div>
@@ -35,6 +30,12 @@
             {{ item.context }}
           </div>
         </div>
+
+        <van-image width="400" :src="problem.img_data.img" >
+            <template v-slot:loading>
+                <van-loading type="spinner" size="20" />
+            </template>
+        </van-image>
       </div>
 
       <div class="column-item2">
@@ -47,78 +48,49 @@
             <div class="samples-name">{{ item.name }} -- {{ item.word }}</div>
             <div
               class="samples-data"
-              v-for="(item2, idx2) in item.data"
-              :key="idx2"
             >
-              <div class="samples-postitle">postitle:{{ item2.postitle }}</div>
+              <div class="samples-postitle">postitle:{{ item.postitle }}</div>
               <!-- definition -->
               <div
                 class="samples-item-content"
-                v-for="(item3, idx3) in item2.list"
-                :key="idx3"
-                @click="bindDefinition(index, idx2, idx3)"
               >
-                <input
-                  type="radio"
-                  name="language"
-                  :value="item"
-                  :checked="
-                    index == radioIdx[0] &&
-                    idx2 == radioIdx[1] &&
-                    idx3 == radioIdx[2]
-                  "
-                />
-                <div class="samples-item-title">{{ item3.title }}</div>
+                <div class="samples-item-title">{{ item.title }}</div>
                 <div style="margin-left: 10px">
-                  <van-cell-group
-                    v-if="
-                      index == radioIdx[0] &&
-                      idx2 == radioIdx[1] &&
-                      idx3 == radioIdx[2]
-                    "
-                  >
-                    <van-field
-                      label="英文释义"
-                      placeholder="英文释义"
-                      :value="item3.en_text"
-                      @input="onEnDef"
-                      autosize
-                      type="textarea"
-                      clickable
-                      border
-                    />
-                  </van-cell-group>
-                  <div>{{ item3.html }}</div>
+                  <div>英文释义：{{ item.en_text }}</div>
+                  <div>{{ item.html }}</div>
                   <div
                     class="samples-item-em"
-                    v-for="(item4, idx4) in item3.em"
+                    v-for="(item4, idx4) in item.em"
                     :key="idx4"
                   >
                     <b>{{ item4 }}</b>
                   </div>
+                  <div>中文释义：{{ item.ch_text }}</div>
 
-                  <van-cell-group
-                    v-if="
-                      index == radioIdx[0] &&
-                      idx2 == radioIdx[1] &&
-                      idx3 == radioIdx[2]
-                    "
-                  >
-                    <van-field
-                      label="中文释义"
-                      placeholder="中文释义"
-                      :value="item3.ch_text"
-                      @input="onChineseDef"
-                      autosize
-                      type="textarea"
-                      clickable
-                      border
-                    />
-                  </van-cell-group>
                 </div>
               </div>
+
             </div>
           </div>
+        </div>
+
+        <div style="width: 400px;margin-left:30px;">
+            <hr>
+            <van-cell-group>
+                <van-field
+                    label="备注"
+                    placeholder="请输入备注"
+                    :value="remarks_text"
+                    @input="onRemarks"
+                    autosize
+                    type="textarea"
+                    clickable
+                    border
+                />
+            </van-cell-group>
+            <van-button color="red" @click="next" size="large">这条有问题</van-button>
+            <div style="height:20px;"></div>
+            <van-button color="#00FF00" @click="skip" size="large">这条没问题</van-button>
         </div>
       </div>
     </div>
@@ -180,7 +152,7 @@ import {
 } from "vant";
 
 export default {
-  name: "vocab-pipei",
+  name: "inspect-pipei",
   props: {
     msg: String,
   },
@@ -196,7 +168,7 @@ export default {
   data() {
     return {
       list: [],
-      problem: {},
+      problem: {img_data:{img:""}},
       curIndex: -1,
       radioIdx: [],
       imgIdx: 999,
@@ -204,35 +176,23 @@ export default {
       sum_count:0,
       showPreImg:false,
       preImgIdx:0,
-
+      remarks_text:'',
     };
   },
   created() {
     this.getList();
   },
   methods: {
+    onRemarks(value){
+        // console.log(value)
+        this.remarks_text = value
+    },
     imgrefload(){
       this.problem.img = this.problem.img+'?'+new Date()
       this.problem.img_query = !this.problem.img_query
     },
     skip(){
-      let obj = {
-        context_list: this.problem.context_list,
-        samples: this.problem.samples_list,
-        img: this.problem.img || '',
-        radioIdx: [],
-        skip:true,
-      };
-      post("/api/word_samples_update.test", obj).then((res) => {
-        console.log("word_samples_update", res);
-        if(this.curIndex == this.list.length-1){
-          this.getList();
-        }
-        else{
-          this.curIndex++;
-          this.setProblem();
-        }
-      });
+      this.word_samples_check_update(false);
     },
     nextImg(type){
       this.preImgIdx += type
@@ -276,18 +236,35 @@ export default {
       this.setProblem();
     },
     next() {
-      let radioIdx = this.radioIdx;
-      if(radioIdx.length == 0 ){
-        Toast('释义没选')
-        return false
-      }
-      let ch_text = this.problem.samples_list[radioIdx[0]].data[radioIdx[1]].list[radioIdx[2]].ch_text
+      let remarks_text = this.remarks_text
       // console.log(ch_text)
-      if(typeof ch_text == 'undefined' || ch_text.replace(/\s+/g, "") == '' ){
-        Toast('中文释义没填写')
+      if(typeof remarks_text == 'undefined' || remarks_text.replace(/\s+/g, "") == '' ){
+        Toast('备注没填写')
         return false
       }
-      this.word_samples_update();
+      this.word_samples_check_update(true);
+    },
+    word_samples_check_update(check_status){
+        let obj = {
+            id:this.problem.id,
+            img: this.problem.img_data,
+            check_status,
+            check_info:this.remarks_text
+        };
+        if (this.imgIdx !== 999) {
+            obj.img = this.problem.img_list[this.imgIdx];
+        }
+        // console.log(obj)
+        post("/api/word_samples_check_update.test", obj).then((res) => {
+            console.log("word_samples_check_update", res);
+            if(this.curIndex == this.list.length-1){
+            this.getList();
+            }
+            else{
+            this.curIndex++;
+            this.setProblem();
+            }
+        });
     },
     word_samples_update() {
       let radioIdx = this.radioIdx;
@@ -332,16 +309,16 @@ export default {
     getList() {
       let obj = {
       };
-      post("/api/word_samples_query.test", obj).then((res) => {
+      post("/api/word_samples_check_query.test", obj).then((res) => {
         console.log("数据", res);
         // this.list = res.list;
         this.radioIdx = [];
         this.imgIdx = 999;
+        this.remarks_text = ''
         this.ok_count = res.ok_count
         this.sum_count = res.sum_count
-        // this.setProblem();
-
-        this.list = this.list.concat(res.list)
+        let arr = [res.data]
+        this.list = this.list.concat(arr)
         this.curIndex++;
         this.setProblem();
       });

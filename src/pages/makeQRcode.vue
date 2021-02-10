@@ -217,8 +217,8 @@ export default {
       resultList:[],
       isRuku:false,
       itemWidth:257.5,
-      itemHeight:104.43,
-      wholeTop:30,
+      itemHeight:103.5,
+      wholeTop:46,
       wholeLeft:15,
       multiple:3,    //放大倍数
       tipsTextFontSize:16,

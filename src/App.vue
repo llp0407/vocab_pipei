@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="left-nav">
-      <leftNavbar></leftNavbar>
+      <leftNavbar :routerList="routerList"></leftNavbar>
     </div>
 
     <transition name="slide-right">
@@ -17,6 +17,15 @@ export default {
   components: {
     leftNavbar,
   },
+  data() {
+    return {
+      routerList:[]
+    }
+  },
+  created(){
+    // console.log(this.$router)
+    this.routerList = this.$router.options.routes
+  }
 };
 </script>
 

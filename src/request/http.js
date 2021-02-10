@@ -4,6 +4,7 @@ import axios from 'axios'; // 引入axios
 import { Toast } from 'vant';
 import util from "../util/util";
 axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8'
+axios.defaults.timeout = 20*60*1000
 
 // 请求拦截器
 axios.interceptors.request.use(
@@ -39,8 +40,10 @@ export function post(url, params) {
         axios.post(url, params)
             .then(res => {
                 resolve(res.data);
+                console.log(res)
             })
             .catch(err => {
+                console.log(err)
                 reject(err.data)
                 Toast('请求错误')
             })
