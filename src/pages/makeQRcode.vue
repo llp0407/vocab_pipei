@@ -174,6 +174,12 @@
         :width="canvasWidth*multiple"
         :height="canvasHeight*multiple"
       ></canvas>
+      <canvas
+        id="c-back"
+        style="border: 1px solid red;"
+        :width="canvasWidth*multiple"
+        :height="canvasHeight*multiple"
+      ></canvas>
       <!-- <canvas
         id="c"
         style="border: 1px solid red;"
@@ -289,6 +295,7 @@ export default {
     },
     initCanvas() {
       this.codeCanvas = new fabric.Canvas("c");
+      this.codeBackCanvas = new fabric.Canvas("c-back");
       // this.codeCanvas.contextContainer.imageSmoothingEnabled = false
       // this.codeCanvas.contextContainer.mozImageSmoothingEnabled = false
       // this.codeCanvas.contextContainer.webkitImageSmoothingEnabled = false
@@ -302,13 +309,16 @@ export default {
     async start() {
       for (let i= 0; i < this.QRcodeList.length; i++) {
         this.codeCanvas.clear();
+        this.codeBackCanvas.clear();
         for(let j= 0; j<this.QRcodeList[i].length; j++){
           console.log(i,j)
           await this.syncDrawImage(i,j);
+          await this.syncDrawBackImage(i,j)
         }
         await this.exportCanvasAsPNG(`第${i}张`)
       }
     },
+    // 正面
     syncDrawImage(i,j) {
       return new Promise((resolve,reject) => {
         const imgObj = new Image();
@@ -354,7 +364,6 @@ export default {
           });
           this.codeCanvas.add(oImage);
           
-
           let tipsTextFontSize = this.tipsTextFontSize * multiple
           let tipsTextLeft = left + imgWidth
           let textGap = 20
@@ -394,6 +403,47 @@ export default {
         // imgObj.src = 'https://xiaotong-abc-1255589169.cos.ap-guangzhou.myqcloud.com/library/2020101315474653756.jpg'
       });
     },
+    // 背面
+    syncDrawBackImage(i,j) {
+      return new Promise((resolve) => {
+          let multiple = this.multiple
+          let boxWidth = parseFloat(this.itemWidth) * multiple;
+          let boxHeight = parseFloat(this.itemHeight) * multiple;
+          let midpointX = boxWidth / 2;
+          let midpointY = boxHeight / 2;
+          let numberOfRows = 4;
+          let imgMidpointX = midpointX - (boxWidth/4)    //图的中点在宽度的1/4处
+          let imgMidpointY = midpointY 
+          let wholeTop = parseFloat(this.wholeTop) + (this.startLine-1) * (boxHeight)
+          let wholeLeft = parseFloat(this.wholeLeft)
+          // let left = (j % numberOfRows) * (boxWidth) + imgMidpointX + wholeLeft
+          let left = ((numberOfRows-1) - j% numberOfRows) * (boxWidth) + imgMidpointX + wholeLeft
+          let top = parseInt(j / numberOfRows) * (boxHeight) + imgMidpointY + wholeTop
+
+          let tipsTextFontSize = this.tipsTextFontSize * multiple
+          let textGap = 20
+          // let textRelativeMidpointY = top - (20*multiple)   //相对box中点
+          let text1 = new fabric.Text(`典范英语`, {
+            left: left + (boxWidth/4),
+            top: top - (tipsTextFontSize + textGap),
+            fontSize: tipsTextFontSize,
+          });
+          let text2 = new fabric.Text(`2930`, {
+            left: left + (boxWidth/4),
+            top: top,
+            fontSize: tipsTextFontSize,
+          });
+          let text3 = new fabric.Text(`2020-10-20`, {
+            left: left + (boxWidth/4),
+            top: top + (tipsTextFontSize + textGap),
+            fontSize: tipsTextFontSize,
+          });
+          this.codeBackCanvas.add(text1);
+          this.codeBackCanvas.add(text2);
+          this.codeBackCanvas.add(text3);
+          resolve(1);
+      });
+    },
     exportCanvasAsPNG(name) {
       return new Promise((resolve)=>{
         //获取canvas元素
@@ -417,6 +467,23 @@ export default {
         document.body.appendChild(dlLink);
         dlLink.click();
         document.body.removeChild(dlLink);
+
+        var canvasElement_back = document.getElementById("c-back");
+        //转换成base64
+        var imgURL_back = canvasElement_back.toDataURL(MIME_TYPE, 2);
+        // console.log(imgURL);
+        //创建一个a链接，模拟点击下载
+        var dlLink_back = document.createElement("a");
+        dlLink.download = `${name}-背面`
+        dlLink.href = imgURL_back;
+        dlLink.dataset.downloadurl = [
+          MIME_TYPE,
+          dlLink.download,
+          dlLink.href,
+        ].join(":");
+        document.body.appendChild(dlLink_back);
+        dlLink.click();
+        document.body.removeChild(dlLink_back);
         resolve(1)
       })
     },
