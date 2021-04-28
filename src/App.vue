@@ -4,9 +4,12 @@
       <leftNavbar :routerList="routerList"></leftNavbar>
     </div>
 
-    <transition name="slide-right">
-      <router-view></router-view>
-    </transition>
+    <!-- <div > -->
+      <transition name="slide-right">
+        <router-view></router-view>
+      </transition>
+    <!-- </div> -->
+    
   </div>
 </template>
 
